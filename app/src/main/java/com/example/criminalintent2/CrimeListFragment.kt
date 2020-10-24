@@ -1,6 +1,8 @@
 package com.example.criminalintent2
 
+import android.content.ComponentCallbacks
 import android.content.ContentValues.TAG
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -15,17 +17,32 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.DiffUtil
+
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.list_of_serious_crime.*
 import java.text.SimpleDateFormat
+import java.util.*
 import java.util.zip.Inflater
 
 class CrimeListFragment : Fragment () {
+
+    interface Callbacks{
+        fun onCrimeSelected(crimeId: UUID)
+
+    }
+    private var callbacks: Callbacks? = null
     private lateinit var crimeRecyclerView: RecyclerView
     private var adapter: CrimeAdapter? = CrimeAdapter(emptyList())
 
     private val crimeListViewModel :CrimeListViewModel by lazy {
         ViewModelProviders.of(this).get(CrimeListViewModel::class.java)
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        callbacks = context as Callbacks ?
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,6 +84,11 @@ class CrimeListFragment : Fragment () {
                 }
             })
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        callbacks = null
+    }
     private fun updateUI(crimes: List<Crime>) {
 
         adapter = CrimeAdapter(crimes)
@@ -104,12 +126,14 @@ class CrimeListFragment : Fragment () {
         }
 
         override fun onClick(v: View) {
-            Toast.makeText(context , "${crime.title}  presssed",Toast.LENGTH_LONG).show()
+            //Toast.makeText(context , "${crime.title}  presssed",Toast.LENGTH_LONG).show()
+            callbacks ?.onCrimeSelected(crime.id)
         }
 
     }
 
-    private inner  class CrimeAdapter(var crimes :List<Crime>):RecyclerView.Adapter<CrimeViewHolder>()
+    private inner  class CrimeAdapter(var crimes :List<Crime>) : ListAdapter<Crime,CrimeViewHolder>(CrimeDiffUtil())
+
     {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CrimeViewHolder {
             //val view = layoutInflater.inflate(R.layout.list_item_crime, parent, false)
@@ -137,6 +161,17 @@ class CrimeListFragment : Fragment () {
 //               else->return@getItemViewType 0
 //           }
 //        }
+
+    }
+// 
+    class CrimeDiffUtil : DiffUtil.ItemCallback<Crime>(){
+        override fun areItemsTheSame(oldItem: Crime, newItem: Crime): Boolean {
+            return oldItem.id == newItem.id
+        }
+
+        override fun areContentsTheSame(oldItem: Crime, newItem: Crime): Boolean {
+            return oldItem.id == newItem.id
+        }
 
     }
 }
